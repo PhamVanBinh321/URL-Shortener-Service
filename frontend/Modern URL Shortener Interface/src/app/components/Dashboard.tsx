@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Link2,
   BarChart3,
@@ -32,11 +33,7 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { MobileNav } from "./MobileNav";
 
-interface DashboardProps {
-  onNavigateToLanding: () => void;
-  onNavigateToLinks: () => void;
-  onNavigateToAnalytics: () => void;
-}
+
 
 // Mock data for the table
 const mockLinks = [
@@ -81,7 +78,8 @@ const chartData = [
   { name: "Sun", clicks: 160 },
 ];
 
-export function Dashboard({ onNavigateToLanding, onNavigateToLinks, onNavigateToAnalytics }: DashboardProps) {
+export function Dashboard() {
+  const navigate = useNavigate();
   const [url, setUrl] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -101,9 +99,9 @@ export function Dashboard({ onNavigateToLanding, onNavigateToLinks, onNavigateTo
         onClose={() => setMobileNavOpen(false)}
         currentPage="dashboard"
         onNavigateToHome={() => { }}
-        onNavigateToLinks={onNavigateToLinks}
-        onNavigateToAnalytics={onNavigateToAnalytics}
-        onNavigateToLanding={onNavigateToLanding}
+        onNavigateToLinks={() => navigate('/links')}
+        onNavigateToAnalytics={() => navigate('/analytics')}
+        onNavigateToLanding={() => navigate('/')}
       />
 
       {/* Desktop Sidebar */}
@@ -122,14 +120,14 @@ export function Dashboard({ onNavigateToLanding, onNavigateToLinks, onNavigateTo
               <span>Home</span>
             </button>
             <button
-              onClick={onNavigateToLinks}
+              onClick={() => navigate('/links')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <Link2 className="w-5 h-5" />
               <span>Links</span>
             </button>
             <button
-              onClick={onNavigateToAnalytics}
+              onClick={() => navigate('/analytics')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <BarChart3 className="w-5 h-5" />
@@ -144,7 +142,7 @@ export function Dashboard({ onNavigateToLanding, onNavigateToLinks, onNavigateTo
 
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={onNavigateToLanding}
+            onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <LogOut className="w-5 h-5" />
@@ -167,15 +165,15 @@ export function Dashboard({ onNavigateToLanding, onNavigateToLinks, onNavigateTo
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
 
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">My Links</h1>
-                <p className="text-xs sm:text-sm text-gray-600 hidden sm:block">Manage and track your shortened URLs</p>
-              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
             </div>
 
-            <div className="flex items-center gap-4">
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-blue-600 text-white">JD</AvatarFallback>
+            <div className="flex items-center gap-3">
+              <Button className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg px-6">
+                ⚡ Upgrade
+              </Button>
+              <Avatar className="w-9 h-9">
+                <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
               </Avatar>
             </div>
           </div>

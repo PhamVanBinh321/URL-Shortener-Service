@@ -1,4 +1,6 @@
-import { 
+import { useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import {
   ArrowLeft,
   Edit2,
   Share2,
@@ -7,7 +9,12 @@ import {
   Calendar,
   Tag,
   Lock,
-  BarChart3 as BarChartIcon
+  BarChart3 as BarChartIcon,
+  Link2,
+  Settings,
+  LogOut,
+  Home,
+  Menu
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -17,23 +24,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts";
+import { Avatar, AvatarFallback } from "./ui/avatar";
+import { MobileNav } from "./MobileNav";
 
-interface LinkDetailProps {
-  onBack: () => void;
-  linkId: number;
-}
+
 
 // Mock data for charts
 const referrersData = [
@@ -74,7 +80,9 @@ const locationsData = [
   { country: "France", clicks: 112, percentage: 4 },
 ];
 
-export function LinkDetail({ onBack, linkId }: LinkDetailProps) {
+export function LinkDetail() {
+  const navigate = useNavigate();
+  const { id } = useParams();
   // Mock link data
   const linkData = {
     title: "Đăng nhập vào trang | Hệ thống đào tạo trực tuyến",
@@ -89,8 +97,8 @@ export function LinkDetail({ onBack, linkId }: LinkDetailProps) {
       {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="px-8 py-4">
-          <button 
-            onClick={onBack}
+          <button
+            onClick={() => navigate('/links')}
             className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -177,33 +185,33 @@ export function LinkDetail({ onBack, linkId }: LinkDetailProps) {
                 <rect x="64" y="0" width="16" height="16" fill="black" />
                 <rect x="96" y="0" width="16" height="16" fill="black" />
                 <rect x="112" y="0" width="16" height="16" fill="black" />
-                
+
                 <rect x="0" y="16" width="16" height="16" fill="black" />
                 <rect x="80" y="16" width="16" height="16" fill="black" />
                 <rect x="112" y="16" width="16" height="16" fill="black" />
-                
+
                 <rect x="0" y="32" width="16" height="16" fill="black" />
                 <rect x="48" y="32" width="16" height="16" fill="black" />
                 <rect x="80" y="32" width="16" height="16" fill="black" />
                 <rect x="112" y="32" width="16" height="16" fill="black" />
-                
+
                 <rect x="0" y="48" width="16" height="16" fill="black" />
                 <rect x="32" y="48" width="16" height="16" fill="black" />
                 <rect x="64" y="48" width="16" height="16" fill="black" />
                 <rect x="96" y="48" width="16" height="16" fill="black" />
-                
+
                 <rect x="16" y="64" width="16" height="16" fill="black" />
                 <rect x="48" y="64" width="16" height="16" fill="black" />
                 <rect x="80" y="64" width="16" height="16" fill="black" />
-                
+
                 <rect x="0" y="80" width="16" height="16" fill="black" />
                 <rect x="64" y="80" width="16" height="16" fill="black" />
                 <rect x="96" y="80" width="16" height="16" fill="black" />
-                
+
                 <rect x="32" y="96" width="16" height="16" fill="black" />
                 <rect x="80" y="96" width="16" height="16" fill="black" />
                 <rect x="112" y="96" width="16" height="16" fill="black" />
-                
+
                 <rect x="0" y="112" width="16" height="16" fill="black" />
                 <rect x="48" y="112" width="16" height="16" fill="black" />
                 <rect x="96" y="112" width="16" height="16" fill="black" />
@@ -319,23 +327,23 @@ export function LinkDetail({ onBack, linkId }: LinkDetailProps) {
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={engagementsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis 
-                dataKey="date" 
-                stroke="#9ca3af" 
+              <XAxis
+                dataKey="date"
+                stroke="#9ca3af"
                 tick={{ fontSize: 12 }}
                 axisLine={false}
               />
-              <YAxis 
-                stroke="#9ca3af" 
+              <YAxis
+                stroke="#9ca3af"
                 tick={{ fontSize: 12 }}
                 axisLine={false}
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: 'white', 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: 'white',
                   border: '1px solid #e5e7eb',
                   borderRadius: '8px'
-                }} 
+                }}
               />
               <Bar dataKey="engagements" fill="#06b6d4" radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -370,7 +378,7 @@ export function LinkDetail({ onBack, linkId }: LinkDetailProps) {
                     </div>
                   </div>
                   <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-blue-500 rounded-full transition-all"
                       style={{ width: `${location.percentage}%` }}
                     ></div>

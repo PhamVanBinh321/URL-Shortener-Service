@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Link2,
   BarChart3,
@@ -41,11 +42,7 @@ import {
 } from "./ui/table";
 import { MobileNav } from "./MobileNav";
 
-interface AnalyticsPageProps {
-  onNavigateToLanding: () => void;
-  onNavigateToHome: () => void;
-  onNavigateToLinks: () => void;
-}
+
 
 // Mock data
 const engagementsOverTimeData = [
@@ -96,7 +93,8 @@ const locationData = [
   { rank: 6, country: "Canada", engagements: 80, percentage: 18.6 },
 ];
 
-export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigateToLinks }: AnalyticsPageProps) {
+export function AnalyticsPage() {
+  const navigate = useNavigate();
   const totalEngagements = deviceData.reduce((sum, item) => sum + item.value, 0);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
@@ -107,10 +105,10 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
         isOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
         currentPage="analytics"
-        onNavigateToHome={onNavigateToHome}
-        onNavigateToLinks={onNavigateToLinks}
+        onNavigateToHome={() => navigate('/dashboard')}
+        onNavigateToLinks={() => navigate('/links')}
         onNavigateToAnalytics={() => { }}
-        onNavigateToLanding={onNavigateToLanding}
+        onNavigateToLanding={() => navigate('/')}
       />
 
       {/* Desktop Sidebar */}
@@ -125,14 +123,14 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
         <nav className="flex-1 p-4">
           <div className="space-y-1">
             <button
-              onClick={onNavigateToHome}
+              onClick={() => navigate('/dashboard')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <Home className="w-5 h-5" />
               <span>Home</span>
             </button>
             <button
-              onClick={onNavigateToLinks}
+              onClick={() => navigate('/links')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <Link2 className="w-5 h-5" />
@@ -151,7 +149,7 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
 
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={onNavigateToLanding}
+            onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <LogOut className="w-5 h-5" />
@@ -164,8 +162,8 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
       <div className="lg:ml-64">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200">
-          <div className="px-4 sm:px-8 py-4 flex justify-between items-center gap-4">
-            <div className="flex items-center gap-2 sm:gap-4 flex-1">
+          <div className="px-4 sm:px-8 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setMobileNavOpen(true)}
                 className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
@@ -173,25 +171,15 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
 
-              <div className="hidden sm:flex items-center gap-4 flex-1">
-                <Search className="w-5 h-5 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search..."
-                  className="max-w-md border-gray-300"
-                />
-              </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics</h1>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white hidden sm:inline-flex">
-                Upgrade
+            <div className="flex items-center gap-3">
+              <Button className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg px-6">
+                ⚡ Upgrade
               </Button>
-              <button className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center hidden sm:flex">
-                ?
-              </button>
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-gray-700 text-white">VP</AvatarFallback>
+              <Avatar className="w-9 h-9">
+                <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
               </Avatar>
             </div>
           </div>

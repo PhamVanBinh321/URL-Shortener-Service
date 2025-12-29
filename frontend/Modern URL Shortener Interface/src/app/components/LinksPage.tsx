@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Link2,
   BarChart3,
@@ -37,13 +38,10 @@ import {
 } from "./ui/select";
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { MobileNav } from "./MobileNav";
+import { CreateLinkModal } from "./CreateLinkModal";
+import { EditLinkModal } from "./EditLinkModal";
 
-interface LinksPageProps {
-  onNavigateToLanding: () => void;
-  onNavigateToHome: () => void;
-  onViewLinkDetail: (linkId: number) => void;
-  onNavigateToAnalytics: () => void;
-}
+
 
 // Mock data for links
 const mockLinks = [
@@ -79,9 +77,29 @@ const mockLinks = [
   },
 ];
 
-export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDetail, onNavigateToAnalytics }: LinksPageProps) {
+export function LinksPage() {
+  const navigate = useNavigate();
   const [viewMode, setViewMode] = useState<"list" | "card" | "grid">("card");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingLink, setEditingLink] = useState<any>(null);
+
+  const handleCreateLink = (url: string, customSlug: string, title: string) => {
+    console.log("Creating link:", { url, customSlug, title });
+    // TODO: Add API call to create link
+  };
+
+  const handleEditLink = (link: any) => {
+    setEditingLink(link);
+    setEditModalOpen(true);
+  };
+
+  const handleSaveEdit = (title: string, tags: string) => {
+    console.log("Saving edits:", { title, tags, linkId: editingLink?.id });
+    // TODO: Add API call to update link
+    setEditingLink(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -90,10 +108,10 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
         isOpen={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
         currentPage="links"
-        onNavigateToHome={onNavigateToHome}
+        onNavigateToHome={() => navigate('/dashboard')}
         onNavigateToLinks={() => { }}
-        onNavigateToAnalytics={onNavigateToAnalytics}
-        onNavigateToLanding={onNavigateToLanding}
+        onNavigateToAnalytics={() => navigate('/analytics')}
+        onNavigateToLanding={() => navigate('/')}
       />
 
       {/* Desktop Sidebar */}
@@ -108,7 +126,7 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
         <nav className="flex-1 p-4">
           <div className="space-y-1">
             <button
-              onClick={onNavigateToHome}
+              onClick={() => navigate('/dashboard')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <Home className="w-5 h-5" />
@@ -119,7 +137,7 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
               <span>Links</span>
             </button>
             <button
-              onClick={onNavigateToAnalytics}
+              onClick={() => navigate('/analytics')}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <BarChart3 className="w-5 h-5" />
@@ -134,7 +152,7 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
 
         <div className="p-4 border-t border-gray-200">
           <button
-            onClick={onNavigateToLanding}
+            onClick={() => navigate('/')}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <LogOut className="w-5 h-5" />
@@ -156,25 +174,24 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
 
-              <div className="hidden sm:flex items-center gap-4 flex-1">
-                <Search className="w-5 h-5 text-gray-400" />
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Links</h1>
+
+              <div className="hidden sm:flex items-center gap-2 flex-1 max-w-md ml-6">
+                <Search className="w-5 h-5 text-gray-400 absolute ml-3" />
                 <Input
                   type="text"
-                  placeholder="Search..."
-                  className="max-w-md border-gray-300"
+                  placeholder="Search links..."
+                  className="pl-10 border-gray-300 h-10"
                 />
               </div>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-4">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white hidden sm:inline-flex">
-                Upgrade
+            <div className="flex items-center gap-3">
+              <Button className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg px-6">
+                ⚡ Upgrade
               </Button>
-              <button className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center hidden sm:flex">
-                ?
-              </button>
-              <Avatar className="w-10 h-10">
-                <AvatarFallback className="bg-gray-700 text-white">VP</AvatarFallback>
+              <Avatar className="w-9 h-9">
+                <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -185,7 +202,10 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bitly Links</h1>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg w-full sm:w-auto">
+            <Button
+              onClick={() => setCreateModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg w-full sm:w-auto"
+            >
               Create link
             </Button>
           </div>
@@ -280,7 +300,7 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
               <Card
                 key={link.id}
                 className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
-                onClick={() => onViewLinkDetail(link.id)}
+                onClick={() => navigate(`/links/${link.id}`)}
               >
                 <div className="flex items-start gap-3 sm:gap-4">
                   {/* Color Icon */}
@@ -324,6 +344,13 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
                       className="p-2 hover:bg-gray-100 rounded"
                       onClick={(e) => {
                         e.stopPropagation();
+                        handleEditLink({
+                          id: link.id,
+                          shortUrl: link.shortUrl,
+                          destinationUrl: link.originalUrl,
+                          title: link.title,
+                          tags: link.tags || "No tags"
+                        });
                       }}
                     >
                       <Edit2 className="w-4 h-4 text-gray-600" />
@@ -340,7 +367,7 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
                       className="p-2 hover:bg-gray-100 rounded"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onViewLinkDetail(link.id);
+                        navigate(`/links/${link.id}`);
                       }}
                     >
                       <BarChart3 className="w-4 h-4 text-gray-600" />
@@ -413,6 +440,26 @@ export function LinksPage({ onNavigateToLanding, onNavigateToHome, onViewLinkDet
           </div>
         </main>
       </div>
+
+      {/* Create Link Modal */}
+      <CreateLinkModal
+        isOpen={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onCreateLink={handleCreateLink}
+      />
+
+      {/* Edit Link Modal */}
+      {editingLink && (
+        <EditLinkModal
+          isOpen={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setEditingLink(null);
+          }}
+          onSave={handleSaveEdit}
+          linkData={editingLink}
+        />
+      )}
     </div>
   );
 }

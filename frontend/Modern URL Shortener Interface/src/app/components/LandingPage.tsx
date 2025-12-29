@@ -1,15 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Link2, BarChart3, Shield, Zap, Menu, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Card } from "./ui/card";
 
-interface LandingPageProps {
-  onNavigateToDashboard: () => void;
-}
-
-export function LandingPage({ onNavigateToDashboard }: LandingPageProps) {
+export function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-screen bg-white">
@@ -31,11 +29,11 @@ export function LandingPage({ onNavigateToDashboard }: LandingPageProps) {
 
             {/* Desktop Buttons */}
             <div className="hidden md:flex items-center gap-3">
-              <Button variant="ghost" className="rounded-full">
+              <Button variant="ghost" className="rounded-full" onClick={() => navigate('/login')}>
                 Log In
               </Button>
               <Button
-                onClick={onNavigateToDashboard}
+                onClick={() => navigate('/signup')}
                 className="bg-blue-600 hover:bg-blue-700 text-white rounded-full"
               >
                 Sign Up
@@ -63,11 +61,11 @@ export function LandingPage({ onNavigateToDashboard }: LandingPageProps) {
                 <a href="#pricing" className="text-gray-600 hover:text-gray-900 px-2" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
                 <a href="#about" className="text-gray-600 hover:text-gray-900 px-2" onClick={() => setMobileMenuOpen(false)}>About</a>
                 <div className="flex flex-col gap-2 pt-2">
-                  <Button variant="ghost" className="rounded-full w-full">
+                  <Button variant="ghost" className="rounded-full w-full" onClick={() => navigate('/login')}>
                     Log In
                   </Button>
                   <Button
-                    onClick={onNavigateToDashboard}
+                    onClick={() => navigate('/signup')}
                     className="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-full"
                   >
                     Sign Up
