@@ -1,7 +1,8 @@
-import { 
-  Link2, 
-  BarChart3, 
-  Settings, 
+import { useState } from "react";
+import {
+  Link2,
+  BarChart3,
+  Settings,
   LogOut,
   Home,
   Search,
@@ -9,25 +10,26 @@ import {
   SlidersHorizontal,
   Download,
   MoreHorizontal,
-  TrendingUp
+  TrendingUp,
+  Menu
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Input } from "./ui/input";
 import { Avatar, AvatarFallback } from "./ui/avatar";
-import { 
-  LineChart, 
-  Line, 
+import {
+  LineChart,
+  Line,
   BarChart,
   Bar,
   PieChart,
   Pie,
   Cell,
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer 
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer
 } from "recharts";
 import {
   Table,
@@ -37,6 +39,7 @@ import {
   TableHeader,
   TableRow,
 } from "./ui/table";
+import { MobileNav } from "./MobileNav";
 
 interface AnalyticsPageProps {
   onNavigateToLanding: () => void;
@@ -95,28 +98,40 @@ const locationData = [
 
 export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigateToLinks }: AnalyticsPageProps) {
   const totalEngagements = deviceData.reduce((sum, item) => sum + item.value, 0);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col">
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile Navigation */}
+      <MobileNav
+        isOpen={mobileNavOpen}
+        onClose={() => setMobileNavOpen(false)}
+        currentPage="analytics"
+        onNavigateToHome={onNavigateToHome}
+        onNavigateToLinks={onNavigateToLinks}
+        onNavigateToAnalytics={() => { }}
+        onNavigateToLanding={onNavigateToLanding}
+      />
+
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex lg:flex-col lg:fixed lg:left-0 lg:top-0 lg:h-full w-64 bg-white border-r border-gray-200">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center gap-2">
             <Link2 className="w-8 h-8 text-blue-600" />
             <span className="text-xl font-bold text-gray-900">Shortify</span>
           </div>
         </div>
-        
+
         <nav className="flex-1 p-4">
           <div className="space-y-1">
-            <button 
+            <button
               onClick={onNavigateToHome}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
               <Home className="w-5 h-5" />
               <span>Home</span>
             </button>
-            <button 
+            <button
               onClick={onNavigateToLinks}
               className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
             >
@@ -133,9 +148,9 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
             </button>
           </div>
         </nav>
-        
+
         <div className="p-4 border-t border-gray-200">
-          <button 
+          <button
             onClick={onNavigateToLanding}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
@@ -146,24 +161,33 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="lg:ml-64">
         {/* Top Bar */}
         <header className="bg-white border-b border-gray-200">
-          <div className="px-8 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4 flex-1">
-              <Search className="w-5 h-5 text-gray-400" />
-              <Input 
-                type="text"
-                placeholder="Search..."
-                className="max-w-md border-gray-300"
-              />
+          <div className="px-4 sm:px-8 py-4 flex justify-between items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1">
+              <button
+                onClick={() => setMobileNavOpen(true)}
+                className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
+              >
+                <Menu className="w-6 h-6 text-gray-600" />
+              </button>
+
+              <div className="hidden sm:flex items-center gap-4 flex-1">
+                <Search className="w-5 h-5 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search..."
+                  className="max-w-md border-gray-300"
+                />
+              </div>
             </div>
-            
-            <div className="flex items-center gap-4">
-              <Button className="bg-teal-600 hover:bg-teal-700 text-white">
+
+            <div className="flex items-center gap-2 sm:gap-4">
+              <Button className="bg-teal-600 hover:bg-teal-700 text-white hidden sm:inline-flex">
                 Upgrade
               </Button>
-              <button className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center">
+              <button className="w-10 h-10 bg-gray-800 text-white rounded-full flex items-center justify-center hidden sm:flex">
                 ?
               </button>
               <Avatar className="w-10 h-10">
@@ -174,57 +198,57 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
         </header>
 
         {/* Content */}
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-4 sm:p-8 overflow-auto">
           {/* Page Header */}
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">Analytics</h1>
-            
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">Analytics</h1>
+
             {/* Date Range and Filters */}
-            <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 sm:gap-4 mb-4">
               <div className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg">
-                <span className="text-sm">Dec 23, 2025</span>
+                <span className="text-xs sm:text-sm">Dec 23, 2025</span>
                 <span className="text-gray-400">→</span>
-                <span className="text-sm">Dec 29, 2025</span>
+                <span className="text-xs sm:text-sm">Dec 29, 2025</span>
                 <Calendar className="w-4 h-4 text-gray-400 ml-2" />
               </div>
-              
-              <Button variant="outline" className="gap-2">
+
+              <Button variant="outline" className="gap-2 w-full sm:w-auto">
                 <SlidersHorizontal className="w-4 h-4" />
                 Add filters
               </Button>
-              
-              <span className="text-sm text-gray-600">Showing data for all links and QR Codes</span>
+
+              <span className="text-xs sm:text-sm text-gray-600 hidden lg:block">Showing data for all links and QR Codes</span>
             </div>
           </div>
 
           {/* Analytics Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
             {/* Top performing date */}
-            <Card className="p-6 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-semibold text-gray-900">
+            <Card className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                   Top performing date by <span className="underline">Total Engagements</span>
                 </h2>
-                <button className="text-gray-400 hover:text-gray-600">
+                <button className="text-gray-400 hover:text-gray-600 hidden sm:block">
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
               </div>
-              
-              <div className="text-center py-8">
-                <TrendingUp className="w-8 h-8 text-gray-900 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">December 28, 2025</h3>
-                <p className="text-lg text-gray-600 mb-2">42 Engagements</p>
-                <p className="text-sm text-gray-500">Dec 23 - Dec 29, 2025</p>
+
+              <div className="text-center py-6 sm:py-8">
+                <TrendingUp className="w-6 sm:w-8 h-6 sm:h-8 text-gray-900 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">December 28, 2025</h3>
+                <p className="text-base sm:text-lg text-gray-600 mb-2">42 Engagements</p>
+                <p className="text-xs sm:text-sm text-gray-500">Dec 23 - Dec 29, 2025</p>
               </div>
             </Card>
 
             {/* Total Engagements by device */}
-            <Card className="p-6 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-semibold text-gray-900">
+            <Card className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                   <span className="underline">Total Engagements</span> by device
                 </h2>
-                <div className="flex gap-2">
+                <div className="hidden sm:flex gap-2">
                   <button className="text-gray-400 hover:text-gray-600">
                     <Download className="w-5 h-5" />
                   </button>
@@ -233,9 +257,9 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                   </button>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-8">
-                <div className="w-48 h-48 relative">
+
+              <div className="flex flex-col sm:flex-row items-center gap-6 sm:gap-8">
+                <div className="w-40 sm:w-48 h-40 sm:h-48 relative">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -258,7 +282,7 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                     <div className="text-sm text-gray-600">Engagements</div>
                   </div>
                 </div>
-                
+
                 <div className="space-y-3 flex-1">
                   {deviceData.map((item, index) => (
                     <div key={index} className="flex items-center justify-between">
@@ -275,12 +299,12 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
           </div>
 
           {/* Total Engagements over time */}
-          <Card className="p-6 mb-6 bg-white rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-base font-semibold text-gray-900">
+          <Card className="p-4 sm:p-6 mb-4 sm:mb-6 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                 <span className="underline">Total Engagements</span> over time
               </h2>
-              <div className="flex gap-2">
+              <div className="hidden sm:flex gap-2">
                 <button className="text-gray-400 hover:text-gray-600">
                   <Download className="w-5 h-5" />
                 </button>
@@ -289,30 +313,30 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                 </button>
               </div>
             </div>
-            
-            <ResponsiveContainer width="100%" height={300}>
+
+            <ResponsiveContainer width="100%" height={200} className="sm:h-[300px]">
               <LineChart data={engagementsOverTimeData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   stroke="#9ca3af"
                   tick={{ fontSize: 11 }}
                 />
-                <YAxis 
+                <YAxis
                   stroke="#9ca3af"
                   tick={{ fontSize: 11 }}
                 />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: 'white', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'white',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px'
-                  }} 
+                  }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="value" 
-                  stroke="#06b6d4" 
+                <Line
+                  type="monotone"
+                  dataKey="value"
+                  stroke="#06b6d4"
                   strokeWidth={2}
                   dot={{ fill: '#06b6d4', r: 3 }}
                 />
@@ -320,33 +344,33 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
             </ResponsiveContainer>
           </Card>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-4 sm:mb-6">
             {/* Top performing location */}
-            <Card className="p-6 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-semibold text-gray-900">
+            <Card className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                   Top performing location by <span className="underline">Total Engagements</span>
                 </h2>
-                <button className="text-gray-400 hover:text-gray-600">
+                <button className="text-gray-400 hover:text-gray-600 hidden sm:block">
                   <MoreHorizontal className="w-5 h-5" />
                 </button>
               </div>
-              
-              <div className="text-center py-8">
-                <TrendingUp className="w-8 h-8 text-gray-900 mx-auto mb-4" />
-                <h3 className="text-2xl font-bold text-gray-900 mb-2">United States & United Kingdom...</h3>
-                <p className="text-lg text-gray-600 mb-2">205 Engagements</p>
-                <p className="text-sm text-gray-500">Dec 23 - Dec 29, 2025</p>
+
+              <div className="text-center py-6 sm:py-8">
+                <TrendingUp className="w-6 sm:w-8 h-6 sm:h-8 text-gray-900 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2">United States & United Kingdom...</h3>
+                <p className="text-base sm:text-lg text-gray-600 mb-2">205 Engagements</p>
+                <p className="text-xs sm:text-sm text-gray-500">Dec 23 - Dec 29, 2025</p>
               </div>
             </Card>
 
             {/* Total Engagements by referrer */}
-            <Card className="p-6 bg-white rounded-lg border border-gray-200">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-semibold text-gray-900">
+            <Card className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+              <div className="flex items-center justify-between mb-4 sm:mb-6">
+                <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                   <span className="underline">Total Engagements</span> by referrer
                 </h2>
-                <div className="flex gap-2">
+                <div className="hidden sm:flex gap-2">
                   <button className="text-gray-400 hover:text-gray-600">
                     <Download className="w-5 h-5" />
                   </button>
@@ -355,27 +379,27 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                   </button>
                 </div>
               </div>
-              
+
               <ResponsiveContainer width="100%" height={200}>
                 <BarChart data={referrerData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-                  <XAxis 
-                    dataKey="name" 
+                  <XAxis
+                    dataKey="name"
                     stroke="#9ca3af"
                     tick={{ fontSize: 11 }}
                     axisLine={false}
                   />
-                  <YAxis 
+                  <YAxis
                     stroke="#9ca3af"
                     tick={{ fontSize: 11 }}
                     axisLine={false}
                   />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'white', 
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
-                    }} 
+                    }}
                   />
                   <Bar dataKey="value" fill="#06b6d4" radius={[4, 4, 0, 0]} />
                 </BarChart>
@@ -384,12 +408,12 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
           </div>
 
           {/* Total Engagements by location */}
-          <Card className="p-6 bg-white rounded-lg border border-gray-200">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-base font-semibold text-gray-900">
+          <Card className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <h2 className="text-sm sm:text-base font-semibold text-gray-900">
                 <span className="underline">Total Engagements</span> by location
               </h2>
-              <div className="flex gap-2">
+              <div className="hidden sm:flex gap-2">
                 <button className="text-gray-400 hover:text-gray-600">
                   <Download className="w-5 h-5" />
                 </button>
@@ -416,7 +440,7 @@ export function AnalyticsPage({ onNavigateToLanding, onNavigateToHome, onNavigat
                   <button className="pb-2 border-b-2 border-gray-900 font-medium">Countries</button>
                   <button className="pb-2 text-gray-500">Cities</button>
                 </div>
-                
+
                 <Table>
                   <TableHeader>
                     <TableRow>

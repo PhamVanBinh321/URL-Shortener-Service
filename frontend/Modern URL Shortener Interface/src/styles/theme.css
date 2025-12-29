@@ -137,6 +137,12 @@
     font-size: var(--font-size);
   }
 
+  @media (max-width: 768px) {
+    html {
+      font-size: 14px;
+    }
+  }
+
   h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
