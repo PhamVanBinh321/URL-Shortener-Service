@@ -1,7 +1,7 @@
 package services
 
 import (
-	"strings"
+	"context"
 	"time"
 
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/models"
@@ -12,36 +12,32 @@ import (
 type AnalyticsService struct {
 	analyticsRepo *repository.AnalyticsRepository
 	urlRepo       *repository.URLRepository
+	queueService  *QueueService
+	geoIPService  *GeoIPService
 }
 
 // NewAnalyticsService creates a new analytics service
-func NewAnalyticsService(analyticsRepo *repository.AnalyticsRepository, urlRepo *repository.URLRepository) *AnalyticsService {
+func NewAnalyticsService(analyticsRepo *repository.AnalyticsRepository, urlRepo *repository.URLRepository, queueService *QueueService, geoIPService *GeoIPService) *AnalyticsService {
 	return &AnalyticsService{
 		analyticsRepo: analyticsRepo,
 		urlRepo:       urlRepo,
+		queueService:  queueService,
+		geoIPService:  geoIPService,
 	}
 }
 
 // TrackClick tracks a URL click
 func (s *AnalyticsService) TrackClick(urlID uint, ipAddress, userAgent, referer string) error {
-	// Parse device type and browser from user agent
-	deviceType := s.parseDeviceType(userAgent)
-	browser := s.parseBrowser(userAgent)
-	os := s.parseOS(userAgent)
-
-	analytics := &models.Analytics{
-		URLID:      urlID,
-		IPAddress:  ipAddress,
-		UserAgent:  userAgent,
-		Referer:    referer,
-		DeviceType: deviceType,
-		Browser:    browser,
-		OS:         os,
-		// Country and City would be populated by IP geolocation service
-		// For now, we'll leave them empty
+	event := &models.ClickEvent{
+		URLID:     urlID,
+		IPAddress: ipAddress,
+		UserAgent: userAgent,
+		Referer:   referer,
+		ClickedAt: time.Now(),
 	}
 
-	return s.analyticsRepo.Create(analytics)
+	// Publish to queue for async processing
+	return s.queueService.Publish(context.Background(), event)
 }
 
 // GetURLAnalytics retrieves analytics for a specific URL
@@ -93,65 +89,4 @@ func (s *AnalyticsService) GetOverviewStats(userID uint, days int) (*models.Anal
 	startDate := endDate.AddDate(0, 0, -days)
 
 	return s.analyticsRepo.GetOverviewStats(userID, startDate, endDate)
-}
-
-// parseDeviceType parses device type from user agent
-func (s *AnalyticsService) parseDeviceType(userAgent string) string {
-	ua := strings.ToLower(userAgent)
-
-	if strings.Contains(ua, "mobile") || strings.Contains(ua, "android") || strings.Contains(ua, "iphone") {
-		return "mobile"
-	}
-
-	if strings.Contains(ua, "tablet") || strings.Contains(ua, "ipad") {
-		return "tablet"
-	}
-
-	return "desktop"
-}
-
-// parseBrowser parses browser from user agent
-func (s *AnalyticsService) parseBrowser(userAgent string) string {
-	ua := strings.ToLower(userAgent)
-
-	if strings.Contains(ua, "edg") {
-		return "Edge"
-	}
-	if strings.Contains(ua, "chrome") {
-		return "Chrome"
-	}
-	if strings.Contains(ua, "firefox") {
-		return "Firefox"
-	}
-	if strings.Contains(ua, "safari") {
-		return "Safari"
-	}
-	if strings.Contains(ua, "opera") || strings.Contains(ua, "opr") {
-		return "Opera"
-	}
-
-	return "Other"
-}
-
-// parseOS parses operating system from user agent
-func (s *AnalyticsService) parseOS(userAgent string) string {
-	ua := strings.ToLower(userAgent)
-
-	if strings.Contains(ua, "windows") {
-		return "Windows"
-	}
-	if strings.Contains(ua, "mac os") || strings.Contains(ua, "macos") {
-		return "macOS"
-	}
-	if strings.Contains(ua, "linux") {
-		return "Linux"
-	}
-	if strings.Contains(ua, "android") {
-		return "Android"
-	}
-	if strings.Contains(ua, "ios") || strings.Contains(ua, "iphone") || strings.Contains(ua, "ipad") {
-		return "iOS"
-	}
-
-	return "Other"
 }

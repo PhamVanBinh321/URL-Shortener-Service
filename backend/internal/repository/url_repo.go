@@ -48,19 +48,25 @@ func (r *URLRepository) FindByShortCode(shortCode string) (*models.URL, error) {
 	return &url, nil
 }
 
-// FindByUserID finds all URLs belonging to a user
-func (r *URLRepository) FindByUserID(userID uint, offset, limit int) ([]models.URL, int64, error) {
+// FindByUserID finds all URLs belonging to a user with optional search
+func (r *URLRepository) FindByUserID(userID uint, search string, offset, limit int) ([]models.URL, int64, error) {
 	var urls []models.URL
 	var total int64
 
+	query := r.db.Model(&models.URL{}).Where("user_id = ?", userID)
+
+	if search != "" {
+		searchTerm := "%" + search + "%"
+		query = query.Where("title LIKE ? OR original_url LIKE ? OR short_code LIKE ? OR custom_alias LIKE ?", searchTerm, searchTerm, searchTerm, searchTerm)
+	}
+
 	// Count total
-	if err := r.db.Model(&models.URL{}).Where("user_id = ?", userID).Count(&total).Error; err != nil {
+	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
 	// Get paginated results
-	err := r.db.Where("user_id = ?", userID).
-		Order("created_at DESC").
+	err := query.Order("created_at DESC").
 		Offset(offset).
 		Limit(limit).
 		Find(&urls).Error

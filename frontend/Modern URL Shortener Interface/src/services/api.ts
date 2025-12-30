@@ -156,8 +156,8 @@ export const api = {
             return response.data;
         },
 
-        getAll: async (page: number = 1, limit: number = 20): Promise<PaginatedResponse<URL>> => {
-            const response = await apiClient.get('/urls', { params: { page, limit } });
+        getAll: async (page: number = 1, limit: number = 20, search: string = ''): Promise<PaginatedResponse<URL>> => {
+            const response = await apiClient.get('/urls', { params: { page, limit, search } });
             return response.data;
         },
 

@@ -8,7 +8,6 @@ import {
   Home,
   Search,
   Calendar,
-  SlidersHorizontal,
   List,
   LayoutGrid,
   Rows3,
@@ -17,7 +16,6 @@ import {
   MoreHorizontal,
   Copy,
   ArrowRight,
-  Info,
   Menu,
   Trash2
 } from "lucide-react";
@@ -59,13 +57,18 @@ export function LinksPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
-    fetchLinks();
-  }, []);
+    const timer = setTimeout(() => {
+      fetchLinks(searchQuery);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
-  const fetchLinks = async () => {
+  const refreshLinks = () => fetchLinks(searchQuery);
+
+  const fetchLinks = async (query = "") => {
     try {
       setIsLoading(true);
-      const response = await api.urls.getAll(1, 100); // Fetch up to 100 links for now
+      const response = await api.urls.getAll(1, 1000, query);
       if (response.success && response.data) {
         setLinks(response.data);
       }
@@ -86,13 +89,15 @@ export function LinksPage() {
 
       if (response.success) {
         setCreateModalOpen(false);
-        fetchLinks(); // Reload list
+        refreshLinks(); // Reload list
         alert(`✅ Link created successfully!`);
       }
     } catch (error: any) {
       alert(`❌ Failed to create link: ${error.response?.data?.message || 'Unknown error'}`);
     }
   };
+
+
 
   const handleEditLink = (link: URLType) => {
     setEditingLink({
@@ -105,7 +110,7 @@ export function LinksPage() {
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (title: string, tags: string) => {
+  const handleSaveEdit = async (title: string) => {
     if (!editingLink) return;
 
     try {
@@ -116,7 +121,7 @@ export function LinksPage() {
       if (response.success) {
         setEditModalOpen(false);
         setEditingLink(null);
-        fetchLinks(); // Reload list
+        refreshLinks(); // Reload list
         alert("✅ Link updated successfully!");
       }
     } catch (error: any) {
@@ -132,7 +137,7 @@ export function LinksPage() {
     try {
       const response = await api.urls.delete(id);
       if (response.success) {
-        fetchLinks();
+        refreshLinks();
         alert("✅ Link deleted successfully!");
       }
     } catch (error: any) {
@@ -158,12 +163,7 @@ export function LinksPage() {
     });
   };
 
-  // Filter links based on search
-  const filteredLinks = links.filter(link =>
-    link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    link.original_url.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    link.short_url.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -318,7 +318,7 @@ export function LinksPage() {
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="hidden sm:flex items-center gap-4">
-              <span className="text-sm text-gray-600">{filteredLinks.length} results</span>
+              <span className="text-sm text-gray-600">{links.length} results</span>
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -351,7 +351,7 @@ export function LinksPage() {
               <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               <p className="text-gray-500">Loading your links...</p>
             </div>
-          ) : filteredLinks.length === 0 ? (
+          ) : links.length === 0 ? (
             <div className="p-12 text-center bg-white rounded-lg border border-gray-200">
               <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Link2 className="w-8 h-8 text-blue-500" />
@@ -364,7 +364,7 @@ export function LinksPage() {
             </div>
           ) : (
             <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
-              {filteredLinks.map((link) => (
+              {links.map((link) => (
                 <Card
                   key={link.id}
                   className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
@@ -500,7 +500,7 @@ export function LinksPage() {
           )}
 
           {/* End Message */}
-          {!isLoading && filteredLinks.length > 0 && (
+          {!isLoading && links.length > 0 && (
             <div className="flex items-center justify-center gap-4 py-8">
               <div className="h-px bg-gray-300 w-20"></div>
               <span className="text-sm text-gray-500">You've reached the end of your links</span>

@@ -15,6 +15,15 @@ type Config struct {
 	JWT      JWTConfig
 	CORS     CORSConfig
 	App      AppConfig
+	Redis    RedisConfig
+}
+
+// RedisConfig holds Redis-related configuration
+type RedisConfig struct {
+	Host     string
+	Port     int
+	Password string
+	DB       int
 }
 
 // ServerConfig holds server-related configuration
@@ -109,6 +118,12 @@ func Load(configPath string) (*Config, error) {
 	if cfg.App.ShortURLLength == 0 {
 		cfg.App.ShortURLLength = 7
 	}
+
+	// Redis config
+	cfg.Redis.Host = viper.GetString("redis.host")
+	cfg.Redis.Port = viper.GetInt("redis.port")
+	cfg.Redis.Password = viper.GetString("redis.password")
+	cfg.Redis.DB = viper.GetInt("redis.db")
 
 	log.Printf("Configuration loaded successfully from %s", configPath)
 	return &cfg, nil

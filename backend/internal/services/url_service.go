@@ -2,7 +2,9 @@ package services
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/models"
@@ -14,14 +16,16 @@ import (
 // URLService handles URL business logic
 type URLService struct {
 	urlRepo         *repository.URLRepository
+	redisService    *RedisService
 	shortCodeLength int
 	baseURL         string
 }
 
 // NewURLService creates a new URL service
-func NewURLService(urlRepo *repository.URLRepository, shortCodeLength int, baseURL string) *URLService {
+func NewURLService(urlRepo *repository.URLRepository, redisService *RedisService, shortCodeLength int, baseURL string) *URLService {
 	return &URLService{
 		urlRepo:         urlRepo,
+		redisService:    redisService,
 		shortCodeLength: shortCodeLength,
 		baseURL:         baseURL,
 	}
@@ -132,6 +136,18 @@ func (s *URLService) GetURL(id uint) (*models.URL, error) {
 
 // GetURLByShortCode retrieves a URL by short code
 func (s *URLService) GetURLByShortCode(shortCode string) (*models.URL, error) {
+	cacheKey := fmt.Sprintf("url:short:%s", shortCode)
+
+	// Try to get from Redis
+	cachedVal, err := s.redisService.Get(cacheKey)
+	if err == nil && cachedVal != "" {
+		var url models.URL
+		if err := json.Unmarshal([]byte(cachedVal), &url); err == nil {
+			return &url, nil
+		}
+	}
+
+	// Get from DB
 	url, err := s.urlRepo.FindByShortCode(shortCode)
 	if err != nil {
 		return nil, err
@@ -147,11 +163,17 @@ func (s *URLService) GetURLByShortCode(shortCode string) (*models.URL, error) {
 		return nil, errors.New("URL is not active")
 	}
 
+	// Save to Redis (async to not block response? No, usually sync is fine for cache set)
+	// We'll marshal the whole object.
+	if jsonBytes, err := json.Marshal(url); err == nil {
+		s.redisService.Set(cacheKey, jsonBytes, 24*time.Hour)
+	}
+
 	return url, nil
 }
 
-// GetUserURLs retrieves all URLs for a user with pagination
-func (s *URLService) GetUserURLs(userID uint, page, limit int) ([]models.URL, int64, error) {
+// GetUserURLs retrieves all URLs for a user with pagination and search
+func (s *URLService) GetUserURLs(userID uint, search string, page, limit int) ([]models.URL, int64, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -160,7 +182,7 @@ func (s *URLService) GetUserURLs(userID uint, page, limit int) ([]models.URL, in
 	}
 
 	offset := (page - 1) * limit
-	return s.urlRepo.FindByUserID(userID, offset, limit)
+	return s.urlRepo.FindByUserID(userID, search, offset, limit)
 }
 
 // UpdateURL updates a URL
@@ -197,6 +219,9 @@ func (s *URLService) UpdateURL(id, userID uint, req *models.UpdateURLRequest) (*
 		return nil, err
 	}
 
+	// Invalidate cache
+	s.redisService.Delete(fmt.Sprintf("url:short:%s", url.ShortCode))
+
 	return url, nil
 }
 
@@ -213,7 +238,12 @@ func (s *URLService) DeleteURL(id, userID uint) error {
 		return errors.New("unauthorized")
 	}
 
-	return s.urlRepo.Delete(id)
+	if err := s.urlRepo.Delete(id); err != nil {
+		return err
+	}
+
+	// Invalidate cache
+	return s.redisService.Delete(fmt.Sprintf("url:short:%s", url.ShortCode))
 }
 
 // IncrementClicks increments the click count for a URL

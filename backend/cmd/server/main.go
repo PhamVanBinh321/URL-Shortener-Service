@@ -11,6 +11,7 @@ import (
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/repository"
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/routes"
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/services"
+	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/worker"
 	"github.com/gin-gonic/gin"
 )
 
@@ -46,9 +47,18 @@ func main() {
 	analyticsRepo := repository.NewAnalyticsRepository(database.DB)
 
 	// Initialize services
+	redisService := services.NewRedisService(cfg.Redis.Host, cfg.Redis.Port, cfg.Redis.Password, cfg.Redis.DB)
 	authService := services.NewAuthService(userRepo, cfg.JWT.Secret, cfg.JWT.Expiration)
-	urlService := services.NewURLService(urlRepo, cfg.App.ShortURLLength, cfg.App.BaseURL)
-	analyticsService := services.NewAnalyticsService(analyticsRepo, urlRepo)
+
+	geoIPService := services.NewGeoIPService()
+	queueService := services.NewQueueService(redisService)
+	urlService := services.NewURLService(urlRepo, redisService, cfg.App.ShortURLLength, cfg.App.BaseURL)
+	analyticsService := services.NewAnalyticsService(analyticsRepo, urlRepo, queueService, geoIPService)
+
+	// Start Analytics Worker
+	analyticsWorker := worker.NewAnalyticsWorker(queueService, analyticsRepo, geoIPService)
+	analyticsWorker.Start()
+	defer analyticsWorker.Stop()
 
 	// Initialize handlers
 	authHandler := handlers.NewAuthHandler(authService)

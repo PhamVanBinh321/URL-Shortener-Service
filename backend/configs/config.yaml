@@ -13,6 +13,12 @@ database:
   max_open_conns: 100
   conn_max_lifetime: 3600 # seconds
 
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  db: 0
+
 jwt:
   secret: "your_super_secret_jwt_key_change_this_in_production"
   expiration: "24h"

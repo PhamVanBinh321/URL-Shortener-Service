@@ -84,12 +84,13 @@ func (h *URLHandler) GetUserURLs(c *gin.Context) {
 		return
 	}
 
-	// Get pagination parameters
+	// Get pagination and search parameters
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	limit, _ := strconv.Atoi(c.DefaultQuery("limit", "20"))
+	search := c.DefaultQuery("search", "")
 
 	// Get URLs
-	urls, total, err := h.urlService.GetUserURLs(userID, page, limit)
+	urls, total, err := h.urlService.GetUserURLs(userID, search, page, limit)
 	if err != nil {
 		utils.InternalServerErrorResponse(c, "Failed to retrieve URLs", err.Error())
 		return
