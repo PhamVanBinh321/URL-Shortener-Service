@@ -109,3 +109,37 @@ func (h *AnalyticsHandler) GetURLStats(c *gin.Context) {
 
 	utils.SuccessResponse(c, http.StatusOK, "Statistics retrieved successfully", stats)
 }
+
+// GetOverviewStats handles getting aggregated statistics for all user URLs
+// @Summary Get overview statistics
+// @Tags Analytics
+// @Produce json
+// @Param days query int false "Number of days (default: 30)"
+// @Success 200 {object} utils.Response
+// @Security BearerAuth
+// @Router /api/analytics/overview [get]
+func (h *AnalyticsHandler) GetOverviewStats(c *gin.Context) {
+	userID, exists := middleware.GetUserID(c)
+	if !exists {
+		utils.UnauthorizedResponse(c, "User not authenticated")
+		return
+	}
+
+	// Get days parameter
+	days, _ := strconv.Atoi(c.DefaultQuery("days", "30"))
+	if days < 1 {
+		days = 30
+	}
+	if days > 365 {
+		days = 365
+	}
+
+	// Get stats
+	stats, err := h.analyticsService.GetOverviewStats(userID, days)
+	if err != nil {
+		utils.InternalServerErrorResponse(c, "Failed to retrieve statistics", err.Error())
+		return
+	}
+
+	utils.SuccessResponse(c, http.StatusOK, "Overview statistics retrieved successfully", stats)
+}

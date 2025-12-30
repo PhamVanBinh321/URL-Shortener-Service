@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Link2,
@@ -18,7 +18,8 @@ import {
   Copy,
   ArrowRight,
   Info,
-  Menu
+  Menu,
+  Trash2
 } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -40,66 +41,129 @@ import { Avatar, AvatarFallback } from "./ui/avatar";
 import { MobileNav } from "./MobileNav";
 import { CreateLinkModal } from "./CreateLinkModal";
 import { EditLinkModal } from "./EditLinkModal";
-
-
-
-// Mock data for links
-const mockLinks = [
-  {
-    id: 1,
-    title: "Đăng nhập vào trang | Hệ thống đào tạo trực tuyến",
-    shortUrl: "bit.ly/3L2hIeO",
-    originalUrl: "https://courses.ut.edu.vn/course/view.php?id=17537&section=2",
-    clicks: "Click data",
-    date: "Dec 26, 2025",
-    tags: "No tags",
-    color: "bg-teal-500"
-  },
-  {
-    id: 2,
-    title: "Product Launch Campaign 2025",
-    shortUrl: "bit.ly/launch25",
-    originalUrl: "https://marketing.company.com/campaigns/product-launch-q1-2025",
-    clicks: "1.2K clicks",
-    date: "Dec 20, 2025",
-    tags: "marketing",
-    color: "bg-purple-500"
-  },
-  {
-    id: 3,
-    title: "Annual Report Q4 2024",
-    shortUrl: "bit.ly/q4report",
-    originalUrl: "https://docs.company.com/reports/annual-q4-2024-financial",
-    clicks: "856 clicks",
-    date: "Dec 15, 2025",
-    tags: "reports",
-    color: "bg-blue-500"
-  },
-];
+import { api, URL as URLType } from "../../services/api";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function LinksPage() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [viewMode, setViewMode] = useState<"list" | "card" | "grid">("card");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editingLink, setEditingLink] = useState<any>(null);
 
-  const handleCreateLink = (url: string, customSlug: string, title: string) => {
-    console.log("Creating link:", { url, customSlug, title });
-    // TODO: Add API call to create link
+  // Real data states
+  const [links, setLinks] = useState<URLType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  const fetchLinks = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.urls.getAll(1, 100); // Fetch up to 100 links for now
+      if (response.success && response.data) {
+        setLinks(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch links:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleEditLink = (link: any) => {
-    setEditingLink(link);
+  const handleCreateLink = async (url: string, customSlug: string, title: string) => {
+    try {
+      const response = await api.urls.create({
+        original_url: url,
+        custom_alias: customSlug || undefined,
+        title: title || undefined
+      });
+
+      if (response.success) {
+        setCreateModalOpen(false);
+        fetchLinks(); // Reload list
+        alert(`✅ Link created successfully!`);
+      }
+    } catch (error: any) {
+      alert(`❌ Failed to create link: ${error.response?.data?.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleEditLink = (link: URLType) => {
+    setEditingLink({
+      id: link.id,
+      shortUrl: link.short_url,
+      destinationUrl: link.original_url,
+      title: link.title,
+      tags: "No tags" // Backend doesn't support tags yet
+    });
     setEditModalOpen(true);
   };
 
-  const handleSaveEdit = (title: string, tags: string) => {
-    console.log("Saving edits:", { title, tags, linkId: editingLink?.id });
-    // TODO: Add API call to update link
-    setEditingLink(null);
+  const handleSaveEdit = async (title: string, tags: string) => {
+    if (!editingLink) return;
+
+    try {
+      const response = await api.urls.update(editingLink.id, {
+        title: title
+      });
+
+      if (response.success) {
+        setEditModalOpen(false);
+        setEditingLink(null);
+        fetchLinks(); // Reload list
+        alert("✅ Link updated successfully!");
+      }
+    } catch (error: any) {
+      alert(`❌ Failed to update link: ${error.response?.data?.message || 'Unknown error'}`);
+    }
   };
+
+  const handleDeleteLink = async (id: number) => {
+    if (!window.confirm("Are you sure you want to delete this link? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await api.urls.delete(id);
+      if (response.success) {
+        fetchLinks();
+        alert("✅ Link deleted successfully!");
+      }
+    } catch (error: any) {
+      alert(`❌ Failed to delete link: ${error.response?.data?.message || 'Unknown error'}`);
+    }
+  };
+
+  const handleCopy = (shortUrl: string) => {
+    navigator.clipboard.writeText(shortUrl);
+    alert("✅ Copied to clipboard!");
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric"
+    });
+  };
+
+  // Filter links based on search
+  const filteredLinks = links.filter(link =>
+    link.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    link.original_url.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    link.short_url.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -151,8 +215,12 @@ export function LinksPage() {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
+          <div className="mb-3 px-4">
+            <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <LogOut className="w-5 h-5" />
@@ -181,6 +249,8 @@ export function LinksPage() {
                 <Input
                   type="text"
                   placeholder="Search links..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 border-gray-300 h-10"
                 />
               </div>
@@ -191,7 +261,9 @@ export function LinksPage() {
                 ⚡ Upgrade
               </Button>
               <Avatar className="w-9 h-9">
-                <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
+                <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  {user?.name?.charAt(0) || "U"}
+                </AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -201,7 +273,7 @@ export function LinksPage() {
         <main className="flex-1 p-4 sm:p-8 overflow-auto">
           {/* Page Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Bitly Links</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Your Links</h1>
             <Button
               onClick={() => setCreateModalOpen(true)}
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg w-full sm:w-auto"
@@ -216,6 +288,8 @@ export function LinksPage() {
             <input
               type="text"
               placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 outline-none text-sm"
             />
           </div>
@@ -228,6 +302,8 @@ export function LinksPage() {
                 <input
                   type="text"
                   placeholder="Search links"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   className="flex-1 outline-none text-sm"
                 />
               </div>
@@ -236,27 +312,13 @@ export function LinksPage() {
                 <span className="hidden sm:inline">Filter by created date</span>
                 <span className="sm:hidden">Date</span>
               </Button>
-              <Button variant="outline" className="gap-2 w-full sm:w-auto">
-                <SlidersHorizontal className="w-4 h-4" />
-                <span className="hidden sm:inline">Add filters</span>
-                <span className="sm:hidden">Filters</span>
-              </Button>
             </div>
           </div>
 
           {/* Toolbar */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <div className="hidden sm:flex items-center gap-4">
-              <span className="text-sm text-gray-600">0 selected</span>
-              <Button variant="ghost" size="sm" className="text-gray-600">
-                Export
-              </Button>
-              <Button variant="ghost" size="sm" className="text-gray-600">
-                Hide
-              </Button>
-              <Button variant="ghost" size="sm" className="text-gray-600">
-                Tag
-              </Button>
+              <span className="text-sm text-gray-600">{filteredLinks.length} results</span>
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -280,164 +342,171 @@ export function LinksPage() {
                   <LayoutGrid className="w-4 h-4 text-gray-600" />
                 </button>
               </div>
-
-              <Select defaultValue="active">
-                <SelectTrigger className="w-full sm:w-[140px]">
-                  <SelectValue placeholder="Show:" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Show: Active</SelectItem>
-                  <SelectItem value="archived">Show: Archived</SelectItem>
-                  <SelectItem value="all">Show: All</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
           </div>
 
           {/* Links List */}
-          <div className="space-y-4 mb-8">
-            {mockLinks.map((link) => (
-              <Card
-                key={link.id}
-                className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
-                onClick={() => navigate(`/links/${link.id}`)}
-              >
-                <div className="flex items-start gap-3 sm:gap-4">
-                  {/* Color Icon */}
-                  <div className={`w-10 h-10 ${link.color} rounded flex-shrink-0`}>
-                    <svg viewBox="0 0 40 40" className="w-full h-full">
-                      <rect x="8" y="16" width="8" height="16" fill="white" opacity="0.8" />
-                      <rect x="20" y="8" width="8" height="24" fill="white" opacity="0.9" />
-                      <rect x="32" y="12" width="8" height="20" fill="white" />
-                    </svg>
-                  </div>
+          {isLoading ? (
+            <div className="p-12 text-center">
+              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-500">Loading your links...</p>
+            </div>
+          ) : filteredLinks.length === 0 ? (
+            <div className="p-12 text-center bg-white rounded-lg border border-gray-200">
+              <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Link2 className="w-8 h-8 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">No links found</h3>
+              <p className="text-gray-500 mb-6">Create your first shortened link to get started.</p>
+              <Button onClick={() => setCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                Create Link
+              </Button>
+            </div>
+          ) : (
+            <div className={viewMode === 'grid' ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" : "space-y-4"}>
+              {filteredLinks.map((link) => (
+                <Card
+                  key={link.id}
+                  className="p-4 sm:p-6 bg-white rounded-lg border border-gray-200 hover:border-gray-300 transition-colors cursor-pointer"
+                  onClick={() => navigate(`/links/${link.id}`)}
+                >
+                  <div className="flex items-start gap-3 sm:gap-4">
+                    {/* Icon */}
+                    <div className={`w-10 h-10 bg-blue-100 rounded flex-shrink-0 flex items-center justify-center`}>
+                      <Link2 className="w-5 h-5 text-blue-600" />
+                    </div>
 
-                  {/* Link Content */}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-medium text-gray-900 mb-2">{link.title}</h3>
+                    {/* Link Content */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-gray-900 mb-2 truncate">{link.title || link.original_url}</h3>
 
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-blue-600 font-medium">{link.shortUrl}</span>
-                      <button className="text-gray-400 hover:text-gray-600">
-                        <Copy className="w-4 h-4" />
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-blue-600 font-medium">{link.short_url}</span>
+                        <button
+                          className="text-gray-400 hover:text-gray-600"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopy(link.short_url);
+                          }}
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
+                        <ArrowRight className="w-4 h-4" />
+                        <span className="truncate">{link.original_url}</span>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-sm text-gray-600">
+                        <div className="flex items-center gap-1">
+                          <BarChart3 className="w-4 h-4" />
+                          <span>{link.clicks} clicks</span>
+                        </div>
+                        <span className="flex items-center gap-1">
+                          <Calendar className="w-4 h-4" />
+                          {formatDate(link.created_at)}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
+                      <button
+                        className="p-2 hover:bg-gray-100 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditLink(link);
+                        }}
+                      >
+                        <Edit2 className="w-4 h-4 text-gray-600" />
                       </button>
+                      <button
+                        className="p-2 hover:bg-gray-100 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(link.short_url);
+                        }}
+                      >
+                        <Share2 className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <button
+                        className="p-2 hover:bg-gray-100 rounded"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/links/${link.id}`);
+                        }}
+                      >
+                        <BarChart3 className="w-4 h-4 text-gray-600" />
+                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            className="p-2 hover:bg-gray-100 rounded"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteLink(link.id);
+                          }} className="text-red-600">
+                            <Trash2 className="w-4 h-4 mr-2" /> Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mb-3">
-                      <ArrowRight className="w-4 h-4" />
-                      <span className="truncate">{link.originalUrl}</span>
-                    </div>
-
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
-                      <span>{link.clicks}</span>
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-4 h-4" />
-                        {link.date}
-                      </span>
-                      <span>{link.tags}</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                    <button
-                      className="p-2 hover:bg-gray-100 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleEditLink({
-                          id: link.id,
-                          shortUrl: link.shortUrl,
-                          destinationUrl: link.originalUrl,
-                          title: link.title,
-                          tags: link.tags || "No tags"
-                        });
-                      }}
-                    >
-                      <Edit2 className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <button
-                      className="p-2 hover:bg-gray-100 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                      }}
-                    >
-                      <Share2 className="w-4 h-4 text-gray-600" />
-                    </button>
-                    <button
-                      className="p-2 hover:bg-gray-100 rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/links/${link.id}`);
-                      }}
-                    >
-                      <BarChart3 className="w-4 h-4 text-gray-600" />
-                    </button>
+                    {/* Mobile More Button */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <button
-                          className="p-2 hover:bg-gray-100 rounded"
+                          className="sm:hidden p-2 hover:bg-gray-100 rounded flex-shrink-0"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <MoreHorizontal className="w-4 h-4 text-gray-600" />
+                          <MoreHorizontal className="w-5 h-5 text-gray-600" />
                         </button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Duplicate</DropdownMenuItem>
-                        <DropdownMenuItem>Archive</DropdownMenuItem>
-                        <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditLink(link);
+                        }}>
+                          <Edit2 className="w-4 h-4 mr-2" />Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => {
+                          e.stopPropagation();
+                          handleCopy(link.short_url);
+                        }}>
+                          <Share2 className="w-4 h-4 mr-2" />Copy
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/links/${link.id}`); }}>
+                          <BarChart3 className="w-4 h-4 mr-2" />Analytics
+                        </DropdownMenuItem>
+                        <DropdownMenuItem className="text-red-600" onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteLink(link.id);
+                        }}>
+                          <Trash2 className="w-4 h-4 mr-2" /> Delete
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </div>
-
-                  {/* Mobile More Button */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        className="sm:hidden p-2 hover:bg-gray-100 rounded flex-shrink-0"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <MoreHorizontal className="w-5 h-5 text-gray-600" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                        <Edit2 className="w-4 h-4 mr-2" />Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
-                        <Share2 className="w-4 h-4 mr-2" />Share
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/links/${link.id}`); }}>
-                        <BarChart3 className="w-4 h-4 mr-2" />Analytics
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Duplicate</DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Archive</DropdownMenuItem>
-                      <DropdownMenuItem className="text-red-600" onClick={(e) => e.stopPropagation()}>Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Info Banner */}
-          <div className="bg-teal-50 border border-teal-200 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-gray-700">
-                Change a link's destination, even after you've shared it.{" "}
-                <a href="#" className="text-teal-600 font-medium hover:underline">
-                  Get redirects with every plan. View plans
-                </a>
-              </p>
+                </Card>
+              ))}
             </div>
-          </div>
+          )}
 
           {/* End Message */}
-          <div className="flex items-center justify-center gap-4 py-8">
-            <div className="h-px bg-gray-300 w-20"></div>
-            <span className="text-sm text-gray-500">You've reached the end of your links</span>
-            <div className="h-px bg-gray-300 w-20"></div>
-          </div>
+          {!isLoading && filteredLinks.length > 0 && (
+            <div className="flex items-center justify-center gap-4 py-8">
+              <div className="h-px bg-gray-300 w-20"></div>
+              <span className="text-sm text-gray-500">You've reached the end of your links</span>
+              <div className="h-px bg-gray-300 w-20"></div>
+            </div>
+          )}
         </main>
       </div>
 

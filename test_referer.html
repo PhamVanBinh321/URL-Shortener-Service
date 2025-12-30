@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Referrer Tracking</title>
+    <style>
+        body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: 0 auto; text-align: center; }
+        .card { border: 1px solid #ddd; padding: 2rem; border-radius: 8px; margin-top: 2rem; }
+        input { padding: 8px; width: 80%; margin-bottom: 1rem; }
+        button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #1d4ed8; }
+    </style>
+</head>
+<body>
+    <h1>🕵️ Referrer Test Page</h1>
+    <p>This page simulates traffic coming from an external website.</p>
+    
+    <div className="card">
+        <h3>Paste your Short Link below:</h3>
+        <input type="text" id="shortUrl" placeholder="http://localhost:8081/..." />
+        <br>
+        <button onclick="simulateClick()">Visit Link</button>
+    </div>
+
+    <script>
+        function simulateClick() {
+            const url = document.getElementById('shortUrl').value;
+            if (!url) {
+                alert('Please enter a URL');
+                return;
+            }
+            // When you click this, the 'Referer' header sent to the backend 
+            // will be the path to this file (or http://localhost... if served via server).
+            window.location.href = url;
+        }
+    </script>
+</body>
+</html>

@@ -49,39 +49,74 @@ export function Dashboard() {
     totalClicks: 0,
     avgClickRate: 0,
   });
+  const [chartData, setChartData] = useState<{ name: string; clicks: number }[]>([]);
 
-  // Fetch user's links
+  // Fetch user's links and stats
   useEffect(() => {
-    fetchLinks();
+    fetchData();
   }, []);
 
-  const fetchLinks = async () => {
+  const fetchData = async () => {
     try {
       setIsLoading(true);
-      const response = await api.urls.getAll(1, 10);
-      if (response.success && response.data) {
-        setLinks(response.data);
-        calculateStats(response.data);
+
+      // Fetch links
+      const linksResponse = await api.urls.getAll(1, 10);
+      if (linksResponse.success && linksResponse.data) {
+        setLinks(linksResponse.data);
+      }
+
+      // Fetch overview stats
+      const statsResponse = await api.analytics.getOverviewStats(7);
+      if (statsResponse.success && statsResponse.data) {
+        const { total_clicks, clicks_by_date } = statsResponse.data;
+
+        // Calculate total links if we have pagination info, otherwise use current page length
+        const totalLinks = linksResponse.pagination?.total || linksResponse.data?.length || 0;
+        const avgClickRate = totalLinks > 0 ? total_clicks / totalLinks : 0;
+
+        setStats({
+          totalLinks,
+          totalClicks: total_clicks,
+          avgClickRate: Math.round(avgClickRate * 10) / 10,
+        });
+
+        // Format chart data (last 7 days)
+        // Ensure we explicitly sort and format for the chart
+        const formattedChartData = formatChartData(clicks_by_date);
+        setChartData(formattedChartData);
       }
     } catch (err: any) {
-      console.error("Failed to fetch links:", err);
-      setError("Failed to load links");
+      console.error("Failed to fetch dashboard data:", err);
+      setError("Failed to load dashboard data");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const calculateStats = (urlList: URLType[]) => {
-    const totalLinks = urlList.length;
-    const totalClicks = urlList.reduce((sum, link) => sum + link.clicks, 0);
-    const avgClickRate = totalLinks > 0 ? totalClicks / totalLinks : 0;
+  const formatChartData = (clicksByDate: any[]) => {
+    // Create map of last 7 days
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      days.push(d.toISOString().split('T')[0]);
+    }
 
-    setStats({
-      totalLinks,
-      totalClicks,
-      avgClickRate: Math.round(avgClickRate * 10) / 10,
+    const clicksMap = new Map(clicksByDate?.map((item: any) => [item.date.split('T')[0], item.clicks]) || []);
+
+    return days.map(date => {
+      const d = new Date(date);
+      const name = d.toLocaleDateString('en-US', { weekday: 'short' });
+      return {
+        name,
+        clicks: clicksMap.get(date) || 0
+      };
     });
   };
+
+  // Remove calculateStats as it's replaced by API data
+
 
   const handleShorten = async () => {
     if (!url) {
@@ -100,7 +135,8 @@ export function Dashboard() {
 
       if (response.success) {
         setUrl("");
-        await fetchLinks();
+        setUrl("");
+        await fetchData();
         alert(`✅ URL shortened: ${response.data.short_url}`);
       }
     } catch (err: any) {
@@ -134,15 +170,7 @@ export function Dashboard() {
   };
 
   // Mock chart data (you can enhance this later with real analytics)
-  const chartData = [
-    { name: "Mon", clicks: 0 },
-    { name: "Tue", clicks: 0 },
-    { name: "Wed", clicks: 0 },
-    { name: "Thu", clicks: 0 },
-    { name: "Fri", clicks: 0 },
-    { name: "Sat", clicks: 0 },
-    { name: "Sun", clicks: stats.totalClicks },
-  ];
+
 
   return (
     <div className="min-h-screen bg-gray-50">

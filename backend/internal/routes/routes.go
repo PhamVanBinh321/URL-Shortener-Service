@@ -53,6 +53,7 @@ func SetupRoutes(
 		analytics := api.Group("/analytics")
 		analytics.Use(authMiddleware.RequireAuth())
 		{
+			analytics.GET("/overview", analyticsHandler.GetOverviewStats)
 			analytics.GET("/:urlId", analyticsHandler.GetURLAnalytics)
 			analytics.GET("/:urlId/stats", analyticsHandler.GetURLStats)
 		}

@@ -86,6 +86,15 @@ func (s *AnalyticsService) GetURLStats(urlID, userID uint, days int) (*models.An
 	return s.analyticsRepo.GetStats(urlID, startDate, endDate)
 }
 
+// GetOverviewStats retrieves aggregated statistics for all user URLs
+func (s *AnalyticsService) GetOverviewStats(userID uint, days int) (*models.AnalyticsStats, error) {
+	// Calculate date range
+	endDate := time.Now()
+	startDate := endDate.AddDate(0, 0, -days)
+
+	return s.analyticsRepo.GetOverviewStats(userID, startDate, endDate)
+}
+
 // parseDeviceType parses device type from user agent
 func (s *AnalyticsService) parseDeviceType(userAgent string) string {
 	ua := strings.ToLower(userAgent)

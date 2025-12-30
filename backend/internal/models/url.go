@@ -11,7 +11,7 @@ type URL struct {
 	OriginalURL string     `gorm:"type:text;not null" json:"original_url" validate:"required,url"`
 	ShortCode   string     `gorm:"uniqueIndex;not null;size:10" json:"short_code"`
 	Title       string     `gorm:"size:255" json:"title"`
-	CustomAlias string     `gorm:"uniqueIndex;size:50" json:"custom_alias,omitempty"`
+	CustomAlias *string    `gorm:"uniqueIndex;size:50" json:"custom_alias,omitempty"`
 	QRCode      string     `gorm:"type:text" json:"qr_code,omitempty"`
 	Clicks      int        `gorm:"default:0" json:"clicks"`
 	CreatedAt   time.Time  `gorm:"autoCreateTime;index" json:"created_at"`
@@ -62,8 +62,10 @@ type URLResponse struct {
 // ToResponse converts URL to URLResponse
 func (u *URL) ToResponse(baseURL string) *URLResponse {
 	shortURL := baseURL + "/" + u.ShortCode
-	if u.CustomAlias != "" {
-		shortURL = baseURL + "/" + u.CustomAlias
+	customAlias := ""
+	if u.CustomAlias != nil {
+		customAlias = *u.CustomAlias
+		shortURL = baseURL + "/" + customAlias
 	}
 
 	return &URLResponse{
@@ -72,7 +74,7 @@ func (u *URL) ToResponse(baseURL string) *URLResponse {
 		ShortCode:   u.ShortCode,
 		ShortURL:    shortURL,
 		Title:       u.Title,
-		CustomAlias: u.CustomAlias,
+		CustomAlias: customAlias,
 		QRCode:      u.QRCode,
 		Clicks:      u.Clicks,
 		CreatedAt:   u.CreatedAt,

@@ -188,6 +188,11 @@ export const api = {
             const response = await apiClient.get(`/analytics/${urlId}/stats`, { params: { days } });
             return response.data;
         },
+
+        getOverviewStats: async (days: number = 30): Promise<{ success: boolean; data: AnalyticsStats }> => {
+            const response = await apiClient.get('/analytics/overview', { params: { days } });
+            return response.data;
+        },
     },
 };
 

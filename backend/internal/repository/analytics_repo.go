@@ -107,8 +107,89 @@ func (r *AnalyticsRepository) GetStats(urlID uint, startDate, endDate time.Time)
 	var topReferers []models.TopReferer
 	r.db.Model(&models.Analytics{}).
 		Select("referer, COUNT(*) as clicks").
-		Where("url_id = ? AND clicked_at BETWEEN ? AND ? AND referer != ''", urlID, startDate, endDate).
+		Where("url_id = ? AND clicked_at BETWEEN ? AND ?", urlID, startDate, endDate).
 		Group("referer").
+		Order("clicks DESC").
+		Limit(10).
+		Scan(&topReferers)
+	stats.TopReferers = topReferers
+
+	return stats, nil
+}
+
+// GetOverviewStats gets aggregated statistics for all URLs belonging to a user
+func (r *AnalyticsRepository) GetOverviewStats(userID uint, startDate, endDate time.Time) (*models.AnalyticsStats, error) {
+	stats := &models.AnalyticsStats{}
+
+	// Helper subquery to get user's URL IDs
+	// We'll join with the urls table in each query
+
+	// Total clicks
+	r.db.Model(&models.Analytics{}).
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Count(&stats.TotalClicks)
+
+	// Unique clicks (by IP)
+	r.db.Model(&models.Analytics{}).
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Distinct("analytics.ip_address").
+		Count(&stats.UniqueClicks)
+
+	// Clicks by date
+	var clicksByDate []models.ClicksByDate
+	r.db.Model(&models.Analytics{}).
+		Select("DATE(analytics.clicked_at) as date, COUNT(*) as clicks").
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("DATE(analytics.clicked_at)").
+		Order("date DESC").
+		Scan(&clicksByDate)
+	stats.ClicksByDate = clicksByDate
+
+	// Clicks by country
+	var clicksByCountry []models.ClicksByCountry
+	r.db.Model(&models.Analytics{}).
+		Select("analytics.country, COUNT(*) as clicks").
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("analytics.country").
+		Order("clicks DESC").
+		Limit(10).
+		Scan(&clicksByCountry)
+	stats.ClicksByCountry = clicksByCountry
+
+	// Clicks by device
+	var clicksByDevice []models.ClicksByDevice
+	r.db.Model(&models.Analytics{}).
+		Select("analytics.device_type, COUNT(*) as clicks").
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("analytics.device_type").
+		Order("clicks DESC").
+		Scan(&clicksByDevice)
+	stats.ClicksByDevice = clicksByDevice
+
+	// Clicks by browser
+	var clicksByBrowser []models.ClicksByBrowser
+	r.db.Model(&models.Analytics{}).
+		Select("analytics.browser, COUNT(*) as clicks").
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("analytics.browser").
+		Order("clicks DESC").
+		Limit(10).
+		Scan(&clicksByBrowser)
+	stats.ClicksByBrowser = clicksByBrowser
+
+	// Top referers
+	var topReferers []models.TopReferer
+	r.db.Model(&models.Analytics{}).
+		Select("analytics.referer, COUNT(*) as clicks").
+		Joins("JOIN urls ON analytics.url_id = urls.id").
+		Where("urls.user_id = ? AND analytics.clicked_at BETWEEN ? AND ?", userID, startDate, endDate).
+		Group("analytics.referer").
 		Order("clicks DESC").
 		Limit(10).
 		Scan(&topReferers)

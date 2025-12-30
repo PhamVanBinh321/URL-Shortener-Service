@@ -1,12 +1,14 @@
 package services
 
 import (
+	"encoding/base64"
 	"errors"
 	"time"
 
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/models"
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/repository"
 	"github.com/PhamVanBinh321/URL-Shortener-Service/backend/internal/utils"
+	"github.com/skip2/go-qrcode"
 )
 
 // URLService handles URL business logic
@@ -91,13 +93,27 @@ func (s *URLService) CreateShortURL(userID uint, req *models.CreateURLRequest) (
 		expiresAt = &parsedTime
 	}
 
+	// Generate QR Code
+	shortURL := s.baseURL + "/" + shortCode
+	png, err := qrcode.Encode(shortURL, qrcode.Medium, 256)
+	var qrCode string
+	if err == nil {
+		qrCode = "data:image/png;base64," + base64.StdEncoding.EncodeToString(png)
+	}
+
+	var customAlias *string
+	if req.CustomAlias != "" {
+		customAlias = &req.CustomAlias
+	}
+
 	// Create URL
 	url := &models.URL{
 		UserID:      userID,
 		OriginalURL: originalURL,
 		ShortCode:   shortCode,
 		Title:       req.Title,
-		CustomAlias: req.CustomAlias,
+		CustomAlias: customAlias,
+		QRCode:      qrCode,
 		ExpiresAt:   expiresAt,
 		IsActive:    true,
 	}
