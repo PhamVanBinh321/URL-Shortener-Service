@@ -406,7 +406,7 @@ export function LinksPage() {
                       <DropdownMenuItem onClick={(e) => e.stopPropagation()}>
                         <Share2 className="w-4 h-4 mr-2" />Share
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onViewLinkDetail(link.id); }}>
+                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); navigate(`/links/${link.id}`); }}>
                         <BarChart3 className="w-4 h-4 mr-2" />Analytics
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={(e) => e.stopPropagation()}>Duplicate</DropdownMenuItem>
