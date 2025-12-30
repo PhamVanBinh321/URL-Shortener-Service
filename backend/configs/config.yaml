@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8081
   host: "localhost"
   mode: "debug" # debug, release, test
 
@@ -7,7 +7,7 @@ database:
   host: "localhost"
   port: 3306
   user: "root"
-  password: "your_password_here"
+  password: "1234"
   name: "url_shortener"
   max_idle_conns: 10
   max_open_conns: 100
@@ -35,5 +35,5 @@ cors:
 app:
   name: "URL Shortener Service"
   env: "development"
-  base_url: "http://localhost:8080"
+  base_url: "http://localhost:8081"
   short_url_length: 7

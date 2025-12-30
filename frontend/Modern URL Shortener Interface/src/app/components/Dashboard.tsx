@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Link2,
@@ -32,64 +32,117 @@ import {
 import { Avatar, AvatarFallback } from "./ui/avatar";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { MobileNav } from "./MobileNav";
-
-
-
-// Mock data for the table
-const mockLinks = [
-  {
-    id: 1,
-    shortUrl: "short.ly/abc123",
-    originalUrl: "https://example.com/very-long-url-that-needs-shortening",
-    clicks: 1234,
-    created: "2 days ago",
-  },
-  {
-    id: 2,
-    shortUrl: "short.ly/xyz789",
-    originalUrl: "https://mywebsite.com/blog/article-about-marketing",
-    clicks: 856,
-    created: "5 days ago",
-  },
-  {
-    id: 3,
-    shortUrl: "short.ly/def456",
-    originalUrl: "https://store.com/products/amazing-product",
-    clicks: 2341,
-    created: "1 week ago",
-  },
-  {
-    id: 4,
-    shortUrl: "short.ly/ghi012",
-    originalUrl: "https://docs.company.com/documentation/getting-started",
-    clicks: 567,
-    created: "2 weeks ago",
-  },
-];
-
-// Mock data for the chart
-const chartData = [
-  { name: "Mon", clicks: 120 },
-  { name: "Tue", clicks: 180 },
-  { name: "Wed", clicks: 150 },
-  { name: "Thu", clicks: 240 },
-  { name: "Fri", clicks: 300 },
-  { name: "Sat", clicks: 200 },
-  { name: "Sun", clicks: 160 },
-];
+import { useAuth } from "../../contexts/AuthContext";
+import { api, URL as URLType } from "../../services/api";
 
 export function Dashboard() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [url, setUrl] = useState("");
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [links, setLinks] = useState<URLType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreating, setIsCreating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState({
+    totalLinks: 0,
+    totalClicks: 0,
+    avgClickRate: 0,
+  });
 
-  const handleShorten = () => {
-    if (url) {
-      // Mock shortening functionality
-      alert(`URL shortened: short.ly/${Math.random().toString(36).substr(2, 6)}`);
-      setUrl("");
+  // Fetch user's links
+  useEffect(() => {
+    fetchLinks();
+  }, []);
+
+  const fetchLinks = async () => {
+    try {
+      setIsLoading(true);
+      const response = await api.urls.getAll(1, 10);
+      if (response.success && response.data) {
+        setLinks(response.data);
+        calculateStats(response.data);
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch links:", err);
+      setError("Failed to load links");
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  const calculateStats = (urlList: URLType[]) => {
+    const totalLinks = urlList.length;
+    const totalClicks = urlList.reduce((sum, link) => sum + link.clicks, 0);
+    const avgClickRate = totalLinks > 0 ? totalClicks / totalLinks : 0;
+
+    setStats({
+      totalLinks,
+      totalClicks,
+      avgClickRate: Math.round(avgClickRate * 10) / 10,
+    });
+  };
+
+  const handleShorten = async () => {
+    if (!url) {
+      setError("Please enter a URL");
+      return;
+    }
+
+    setIsCreating(true);
+    setError(null);
+
+    try {
+      const response = await api.urls.create({
+        original_url: url,
+        title: `Link ${new Date().toLocaleDateString()}`,
+      });
+
+      if (response.success) {
+        setUrl("");
+        await fetchLinks();
+        alert(`✅ URL shortened: ${response.data.short_url}`);
+      }
+    } catch (err: any) {
+      setError(err.response?.data?.message || "Failed to shorten URL");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleCopy = (shortUrl: string) => {
+    navigator.clipboard.writeText(shortUrl);
+    alert("✅ Copied to clipboard!");
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
+  // Mock chart data (you can enhance this later with real analytics)
+  const chartData = [
+    { name: "Mon", clicks: 0 },
+    { name: "Tue", clicks: 0 },
+    { name: "Wed", clicks: 0 },
+    { name: "Thu", clicks: 0 },
+    { name: "Fri", clicks: 0 },
+    { name: "Sat", clicks: 0 },
+    { name: "Sun", clicks: stats.totalClicks },
+  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -141,8 +194,12 @@ export function Dashboard() {
         </nav>
 
         <div className="p-4 border-t border-gray-200">
+          <div className="mb-3 px-4">
+            <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+            <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+          </div>
           <button
-            onClick={() => navigate('/')}
+            onClick={handleLogout}
             className="w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg"
           >
             <LogOut className="w-5 h-5" />
@@ -157,23 +214,20 @@ export function Dashboard() {
         <header className="bg-white border-b border-gray-200">
           <div className="px-4 sm:px-8 py-4 flex justify-between items-center">
             <div className="flex items-center gap-4">
-              {/* Mobile Menu Button */}
               <button
                 onClick={() => setMobileNavOpen(true)}
                 className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
               >
                 <Menu className="w-6 h-6 text-gray-600" />
               </button>
-
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
             </div>
 
             <div className="flex items-center gap-3">
-              <Button className="hidden sm:flex bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg px-6">
-                ⚡ Upgrade
-              </Button>
               <Avatar className="w-9 h-9">
-                <AvatarFallback className="bg-blue-600 text-white text-sm">JD</AvatarFallback>
+                <AvatarFallback className="bg-blue-600 text-white text-sm">
+                  {user?.name?.charAt(0) || "U"}
+                </AvatarFallback>
               </Avatar>
             </div>
           </div>
@@ -181,6 +235,13 @@ export function Dashboard() {
 
         {/* Content */}
         <main className="flex-1 p-4 sm:p-8 overflow-auto">
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
           {/* Create New Link Card */}
           <Card className="p-4 sm:p-6 mb-6 sm:mb-8 bg-white rounded-xl shadow-sm">
             <h2 className="text-base sm:text-lg font-bold text-gray-900 mb-4">Create New Short Link</h2>
@@ -190,13 +251,15 @@ export function Dashboard() {
                 placeholder="Paste your long URL here"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleShorten()}
                 className="flex-1 rounded-full border-gray-300"
               />
               <Button
                 onClick={handleShorten}
-                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 w-full sm:w-auto"
+                disabled={!url || isCreating}
+                className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 w-full sm:w-auto disabled:opacity-50"
               >
-                Shorten
+                {isCreating ? "Creating..." : "Shorten"}
               </Button>
             </div>
           </Card>
@@ -207,15 +270,11 @@ export function Dashboard() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-sm text-gray-600">Total Links</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">127</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.totalLinks}</p>
                 </div>
                 <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
                   <Link2 className="w-5 h-5 text-blue-600" />
                 </div>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-green-600">
-                <TrendingUp className="w-4 h-4" />
-                <span>12% from last month</span>
               </div>
             </Card>
 
@@ -223,15 +282,11 @@ export function Dashboard() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-sm text-gray-600">Total Clicks</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">4,998</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.totalClicks.toLocaleString()}</p>
                 </div>
                 <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
                   <BarChart3 className="w-5 h-5 text-purple-600" />
                 </div>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-green-600">
-                <TrendingUp className="w-4 h-4" />
-                <span>28% from last month</span>
               </div>
             </Card>
 
@@ -239,15 +294,11 @@ export function Dashboard() {
               <div className="flex items-start justify-between mb-2">
                 <div>
                   <p className="text-sm text-gray-600">Avg. Click Rate</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">39.4</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{stats.avgClickRate}</p>
                 </div>
                 <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-5 h-5 text-green-600" />
                 </div>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-green-600">
-                <TrendingUp className="w-4 h-4" />
-                <span>8% from last month</span>
               </div>
             </Card>
           </div>
@@ -284,59 +335,73 @@ export function Dashboard() {
               <h2 className="text-base sm:text-lg font-bold text-gray-900">Recent Links</h2>
             </div>
             <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[150px]">Short URL</TableHead>
-                    <TableHead className="min-w-[250px]">Original URL</TableHead>
-                    <TableHead className="min-w-[100px]">Clicks</TableHead>
-                    <TableHead className="min-w-[120px]">Created</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {mockLinks.map((link) => (
-                    <TableRow key={link.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span className="text-blue-600 font-medium">{link.shortUrl}</span>
-                          <button className="text-gray-400 hover:text-gray-600">
-                            <Copy className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2 max-w-md">
-                          <span className="text-gray-600 truncate">{link.originalUrl}</span>
-                          <a href={link.originalUrl} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className="font-medium text-gray-900">{link.clicks.toLocaleString()}</span>
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-gray-600">{link.created}</span>
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>View Analytics</DropdownMenuItem>
-                            <DropdownMenuItem className="text-red-600">Delete</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
+              {isLoading ? (
+                <div className="p-8 text-center text-gray-500">
+                  <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+                  Loading links...
+                </div>
+              ) : links.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">
+                  No links yet. Create your first short link above!
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[150px]">Short URL</TableHead>
+                      <TableHead className="min-w-[250px]">Original URL</TableHead>
+                      <TableHead className="min-w-[100px]">Clicks</TableHead>
+                      <TableHead className="min-w-[120px]">Created</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {links.map((link) => (
+                      <TableRow key={link.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className="text-blue-600 font-medium">{link.short_url}</span>
+                            <button
+                              onClick={() => handleCopy(link.short_url)}
+                              className="text-gray-400 hover:text-gray-600"
+                            >
+                              <Copy className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2 max-w-md">
+                            <span className="text-gray-600 truncate">{link.original_url}</span>
+                            <a href={link.original_url} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-gray-600 flex-shrink-0">
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="font-medium text-gray-900">{link.clicks.toLocaleString()}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-gray-600">{formatDate(link.created_at)}</span>
+                        </TableCell>
+                        <TableCell>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm">
+                                <MoreVertical className="w-4 h-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem onClick={() => navigate(`/links/${link.id}`)}>
+                                View Analytics
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
             </div>
           </Card>
         </main>

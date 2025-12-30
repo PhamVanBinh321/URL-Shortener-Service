@@ -1,25 +1,46 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Link2, User, Lock } from "lucide-react";
+import { Link2, User, Lock, Mail } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function SignUpPage() {
     const navigate = useNavigate();
+    const { register } = useAuth();
     const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [agreed, setAgreed] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleCreateAccount = () => {
-        if (fullName && password && agreed) {
+    const handleCreateAccount = async () => {
+        if (!fullName || !email || !password || !agreed) {
+            setError("Please fill all fields and agree to terms");
+            return;
+        }
+
+        if (password.length < 6) {
+            setError("Password must be at least 6 characters long");
+            return;
+        }
+
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            await register(email, password, fullName);
             navigate('/dashboard');
+        } catch (err: any) {
+            setError(err.message || "Registration failed. Please try again.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleGoogleSignUp = () => {
-        // TODO: Implement Google OAuth
-        console.log("Google Sign Up clicked");
-        navigate('/dashboard');
+        setError("Google sign-up not yet implemented");
     };
 
     return (
@@ -71,9 +92,16 @@ export function SignUpPage() {
                         <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
                             Create your account
                         </h1>
-                        <p className="text-gray-600 text-center mb-8 text-sm">
+                        <p className="text-gray-600 text-center mb-4 text-sm">
                             Join thousands of marketers tracking their links today.
                         </p>
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600">{error}</p>
+                            </div>
+                        )}
 
                         {/* Form */}
                         <div className="space-y-4 mb-6">
@@ -95,6 +123,24 @@ export function SignUpPage() {
                                 </div>
                             </div>
 
+                            {/* Email */}
+                            <div>
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                                    Email address
+                                </label>
+                                <div className="relative">
+                                    <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="you@example.com"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        className="pl-10 h-12 border-gray-300"
+                                    />
+                                </div>
+                            </div>
+
                             {/* Password */}
                             <div>
                                 <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
@@ -111,7 +157,7 @@ export function SignUpPage() {
                                         className="pl-10 h-12 border-gray-300"
                                     />
                                 </div>
-                                <p className="text-xs text-gray-500 mt-1">Must be at least 8 characters long.</p>
+                                <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters long.</p>
                             </div>
                         </div>
 
@@ -139,10 +185,17 @@ export function SignUpPage() {
                         {/* Create Account Button */}
                         <Button
                             onClick={handleCreateAccount}
-                            disabled={!fullName || !password || !agreed}
+                            disabled={!fullName || !email || !password || !agreed || isLoading}
                             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Create Account
+                            {isLoading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Creating account...
+                                </>
+                            ) : (
+                                "Create Account"
+                            )}
                         </Button>
 
                         {/* Divider */}

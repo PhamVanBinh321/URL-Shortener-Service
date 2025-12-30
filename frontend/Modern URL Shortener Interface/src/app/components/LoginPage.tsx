@@ -3,30 +3,39 @@ import { useNavigate } from "react-router-dom";
 import { Link2, Mail, Lock, LogIn as LogInIcon } from "lucide-react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
+import { useAuth } from "../../contexts/AuthContext";
 
 export function LoginPage() {
     const navigate = useNavigate();
+    const { login } = useAuth();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [rememberMe, setRememberMe] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
-    const handleLogin = () => {
-        // Demo account for testing
-        const DEMO_EMAIL = "demo@shortify.com";
-        const DEMO_PASSWORD = "demo123";
+    const handleLogin = async () => {
+        if (!email || !password) {
+            setError("Please enter both email and password");
+            return;
+        }
 
-        if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
-            alert("✅ Login successful! Welcome back!");
+        setIsLoading(true);
+        setError(null);
+
+        try {
+            await login(email, password);
             navigate('/dashboard');
-        } else if (email && password) {
-            alert("❌ Invalid credentials. Try:\nEmail: demo@shortify.com\nPassword: demo123");
+        } catch (err: any) {
+            setError(err.message || "Login failed. Please check your credentials.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleGoogleLogin = () => {
         // TODO: Implement Google OAuth
-        console.log("Google Login clicked");
-        navigate('/dashboard');
+        setError("Google login not yet implemented");
     };
 
     return (
@@ -75,9 +84,16 @@ export function LoginPage() {
                         <h1 className="text-2xl font-bold text-gray-900 text-center mb-2">
                             Welcome back
                         </h1>
-                        <p className="text-gray-600 text-center mb-8 text-sm">
+                        <p className="text-gray-600 text-center mb-4 text-sm">
                             Enter your credentials to access your account.
                         </p>
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-600">{error}</p>
+                            </div>
+                        )}
 
                         {/* Form */}
                         <div className="space-y-4 mb-6">
@@ -117,6 +133,7 @@ export function LoginPage() {
                                         placeholder="••••••••"
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
+                                        onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
                                         className="pl-10 h-12 border-gray-300"
                                     />
                                 </div>
@@ -140,11 +157,20 @@ export function LoginPage() {
                         {/* Login Button */}
                         <Button
                             onClick={handleLogin}
-                            disabled={!email || !password}
+                            disabled={!email || !password || isLoading}
                             className="w-full h-12 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
-                            <LogInIcon className="w-4 h-4" />
-                            Log in
+                            {isLoading ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    Logging in...
+                                </>
+                            ) : (
+                                <>
+                                    <LogInIcon className="w-4 h-4" />
+                                    Log in
+                                </>
+                            )}
                         </Button>
 
                         {/* Divider */}
